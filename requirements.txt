@@ -1,0 +1,7 @@
+fastapi
+shapely
+pydantic
+requests
+uvicorn
+ipdb
+time
