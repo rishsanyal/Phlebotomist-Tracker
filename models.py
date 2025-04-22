@@ -20,7 +20,6 @@ class ClinicianInfo(BaseModel):
     user_id: int
     query_status: int
     error_count: int
-    # error_message_sent: bool
 
 
 class LocationResponse(BaseModel):
