@@ -35,6 +35,7 @@ async def lifespan(_: FastAPI):
 app = FastAPI(title="Phlebotomist Monitor", version="1.0.0", lifespan=lifespan)
 
 
+# TODO: Rename this function
 def handle_clinician(clinician: ClinicianInfo):
     """handle the status of a clinician
     TODO: Fix documentation everywhere
@@ -42,6 +43,7 @@ def handle_clinician(clinician: ClinicianInfo):
     clinician_geographic_info = None
     clinician_geographic_info = query_location(clinician.user_id)
 
+    # TODO: Change to Try/Catch
     if clinician_geographic_info:
         clinician.query_status = check_clinician_within_bounds(
             clinician_geographic_info.curr_point, clinician_geographic_info.bounds
@@ -110,6 +112,7 @@ async def poll_locations():
         # time.sleep(POLL_INTERVAL)
 
 
+# TODO: Check OpenAPI deployment for this
 @app.get("/health", tags=["System"])
 async def health_check():
     """ "Health check endpoint for the server."""

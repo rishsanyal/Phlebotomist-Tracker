@@ -57,7 +57,7 @@ def query_location(phlebotomist_id: int) -> LocationResponse | None:
 def check_clinician_within_bounds(
     location: Location, bounds: Bounds
 ) -> Union[ClinicianStatus.WITHIN_BOUNDS, ClinicianStatus.OUT_OF_BOUNDS]:
-    """Check if a clinician is within bounds given the grographic information"""
+    """Check if a clinician is within bounds given the geographic information"""
 
     curr_location = Point(location.lat, location.lon)
     curr_bounds = Polygon((i.lat, i.lon) for i in bounds.limits)
