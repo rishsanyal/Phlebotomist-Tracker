@@ -8,4 +8,4 @@ Lifecycle Status of Clinicians:
 Deployment:
 
 1. source ./venv/bin/activate
-2. fastapi dev app.py
+2. python3 app.py

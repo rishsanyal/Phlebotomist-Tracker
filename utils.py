@@ -1,27 +1,14 @@
+from datetime import datetime
 from typing import Union
 
-from datetime import datetime
 import requests
 from shapely import Point, Polygon
 
-from models import LocationResponse, Location, Bounds
-
 from clinicians import ClinicianStatus
+from models import Bounds, Location, LocationResponse
 
 # PHLEBOTOMIST_API_BASE = "https://3qbqr98twd.execute-api.us-west-2.amazonaws.com/test"
 PHLEBOTOMIST_API_BASE = "http://localhost:3000"
-
-
-async def send_alert(
-    phlebotomist_id: int,
-    alert_case: Union[ClinicianStatus.ERROR, ClinicianStatus.OUT_OF_BOUNDS],
-):
-    """
-    Send email alert in case of a clinician going out of bounds
-    """
-    message = f"Phlebotomist #{phlebotomist_id} has exited the designated safety zone as of {datetime.utcnow().isoformat()} UTC."
-
-    print(message, alert_case)
 
 
 def query_location(phlebotomist_id: int) -> LocationResponse | None:
