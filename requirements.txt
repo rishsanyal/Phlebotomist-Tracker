@@ -1,7 +1,6 @@
-fastapi
+fastapi[standard]
 shapely
 pydantic
 requests
 uvicorn
 ipdb
-time
