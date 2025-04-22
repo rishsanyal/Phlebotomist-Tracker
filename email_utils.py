@@ -1,6 +1,5 @@
 import os
 import smtplib
-import ssl
 from datetime import datetime
 from email.message import EmailMessage
 from typing import Union
@@ -11,12 +10,12 @@ from clinicians import ClinicianStatus
 
 load_dotenv()
 
-SMTP_PORT = 465
+SMTP_PORT = 587
 
 
 def send_email(phlebotomist_id: int, message: str):
     email_sender = "rishabh106@gmail.com"
-    email_receiver = "rsanyal@ucdavis.edu"
+    email_receiver = ["rishabh106@gmail.com"]
     subject = f"Test SUBJECT #{phlebotomist_id}"
     body = message
 
@@ -26,14 +25,14 @@ def send_email(phlebotomist_id: int, message: str):
     em["Subject"] = subject
     em.set_content(body)
 
-    context = ssl.create_default_context()
-
     try:
-        with smtplib.SMTP_SSL("smtp.gmail.com", SMTP_PORT, context=context) as smtp:
-            email_password = os.getenv("EMAIL_PASSWORD")
-            smtp.login(email_sender, email_password)
-            smtp.send_message(em)
-            print("Email sent successfully!")
+        server = smtplib.SMTP("smtp.gmail.com", 587)
+        server.ehlo()
+        server.starttls()
+        server.login(email_sender, os.getenv("EMAIL_PASSWORD"))
+        server.sendmail(email_sender, email_receiver, em.as_string())
+        server.close()
+        print("successfully sent the mail")
     except Exception as e:
         print(f"An error occurred: {e}")
 

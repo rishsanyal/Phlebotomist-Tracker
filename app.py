@@ -16,6 +16,7 @@ from utils import check_clinician_within_bounds, query_location
 # for network errors, emailing errors, etc and to reach our SLA of 5 mins
 POLL_INTERVAL = 5
 ERROR_POLL_INTERVAL = 1
+ERROR_RETRY_LIMT = 3
 
 # ENHANCEMENT: Use a database for this.
 # Redis would be a good fit given the atomicity and consistency requirements
@@ -35,7 +36,7 @@ async def lifespan(_: FastAPI):
 app = FastAPI(title="Phlebotomist Monitor", version="1.0.0", lifespan=lifespan)
 
 
-# TODO: Rename this function
+# TODO: Rname this function
 def handle_clinician(clinician: ClinicianInfo):
     """handle the status of a clinician
     TODO: Fix documentation everywhere
@@ -76,7 +77,7 @@ def handle_clinician(clinician: ClinicianInfo):
             #     f"Clinician retry: {PHLEBOTOMIST_DATA[clinician.user_id]['error_count']}"
             # )
 
-            if PHLEBOTOMIST_DATA[clinician.user_id]["error_count"] < 5:
+            if PHLEBOTOMIST_DATA[clinician.user_id]["error_count"] < ERROR_RETRY_LIMT:
                 PHLEBOTOMIST_DATA[clinician.user_id]["error_count"] += 1
                 time.sleep(ERROR_POLL_INTERVAL)
 
@@ -108,8 +109,8 @@ async def poll_locations():
             clinician = ClinicianInfo(**clinician_info)
             handle_clinician(clinician)
 
-        break
-        # time.sleep(POLL_INTERVAL)
+        time.sleep(POLL_INTERVAL)
+    return
 
 
 # TODO: Check OpenAPI deployment for this

@@ -7,8 +7,8 @@ from shapely import Point, Polygon
 from clinicians import ClinicianStatus
 from models import Bounds, Location, LocationResponse
 
-# PHLEBOTOMIST_API_BASE = "https://3qbqr98twd.execute-api.us-west-2.amazonaws.com/test"
-PHLEBOTOMIST_API_BASE = "http://localhost:3000"
+PHLEBOTOMIST_API_BASE = "https://3qbqr98twd.execute-api.us-west-2.amazonaws.com/test"
+# PHLEBOTOMIST_API_BASE = "http://localhost:3000"
 
 
 def query_location(phlebotomist_id: int) -> LocationResponse | None:
