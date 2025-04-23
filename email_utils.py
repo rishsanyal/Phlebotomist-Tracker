@@ -20,8 +20,7 @@ def send_email(clinician_id: int, message: str):
 
     email_sender = "rishabh106@gmail.com"
     email_receiver = [
-        "uvnhh4+4wxuvphywzyl4@sharklasers.com",
-        # "coding-challenges+alerts@sprinterhealth.com",
+        "coding-challenges+alerts@sprinterhealth.com",
     ]
 
     subject = f"Clinician Update: #{clinician_id}"
