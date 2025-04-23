@@ -21,6 +21,7 @@ from utils import check_clinician_within_bounds, query_location
 POLL_INTERVAL = 4 * 60
 ERROR_POLL_INTERVAL = 10
 ERROR_RETRY_LIMT = 3
+TOTAL_RUN_HOURS = 1
 
 # ENHANCEMENT: Use a database for this.
 # Redis would be a good fit given the atomicity and consistency requirements
@@ -34,7 +35,6 @@ async def lifespan(_: FastAPI):
     """
     create_task(poll_locations())
     yield
-    os.kill(os.getpid(), signal.SIGTERM)
 
 
 app = FastAPI(title="Phlebotomist Monitor", version="1.0.0", lifespan=lifespan)
@@ -63,7 +63,7 @@ def clinician_workflow(clinician: ClinicianInfo):
 
     match clinician.query_status:
         case ClinicianStatus.WITHIN_BOUNDS:
-            logger.info(f"Clinician {clinician.user_id} within bounds")
+            logger.debug(f"Clinician {clinician.user_id} within bounds")
             PHLEBOTOMIST_DATA[clinician.user_id]["query_status"] = (
                 ClinicianStatus.WITHIN_BOUNDS
             )
@@ -75,7 +75,7 @@ def clinician_workflow(clinician: ClinicianInfo):
             )
             PHLEBOTOMIST_DATA[clinician.user_id]["error_count"] = 0
 
-            logger.debug(
+            logger.warning(
                 f"Clinician {clinician.user_id} out of bounds. Curr Point: {clinician_geographic_info.curr_point} Bounds: {clinician_geographic_info.bounds}"
             )
 
@@ -85,10 +85,7 @@ def clinician_workflow(clinician: ClinicianInfo):
             )
 
         case ClinicianStatus.ERROR:
-            logger.info(f"Clinician {clinician.user_id} error'd out")
-            logger.info(
-                f"Clinician retry: {PHLEBOTOMIST_DATA[clinician.user_id]['error_count']}"
-            )
+            logger.debug(f"Clinician {clinician.user_id} error'd out")
 
             if PHLEBOTOMIST_DATA[clinician.user_id]["error_count"] < ERROR_RETRY_LIMT:
                 PHLEBOTOMIST_DATA[clinician.user_id]["error_count"] += 1
@@ -111,21 +108,41 @@ async def poll_locations():
 
     logging.info("Polling started")
 
-    start_time = datetime.datetime.now()
     curr_round = 0
 
-    while datetime.datetime.now() < start_time + datetime.timedelta(hours=1):
+    start_time = datetime.datetime.now()
+    end_time = start_time + datetime.timedelta(hours=TOTAL_RUN_HOURS)
+
+    logger.info(f"Response: Round Started: {start_time}\n")
+
+    while datetime.datetime.now() <= end_time:
         for _, clinician_info in PHLEBOTOMIST_DATA.items():
             clinician = ClinicianInfo(**clinician_info)
+
             clinician_workflow(clinician)
+
+            logger.info(
+                f"Response: {clinician.user_id}, {clinician.query_status}, {datetime.timedelta(minutes=(datetime.datetime.now() - start_time).total_seconds())}\n"
+            )
 
         curr_round += 1
 
         logger.info(("-" * 100) + "\n")
-        logger.info(f"Iteration Completed: {curr_round}\n\n")
+        logger.info(
+            f"Response: Iteration Completed: {curr_round} : {datetime.timedelta(minutes=(datetime.datetime.now() - start_time).total_seconds())}\n\n"
+        )
         logger.info(("-" * 100) + "\n")
 
-        time.sleep(POLL_INTERVAL)
+        if end_time >= datetime.datetime.now() + datetime.timedelta(
+            seconds=POLL_INTERVAL
+        ):
+            time.sleep(POLL_INTERVAL)
+        else:
+            break
+
+    logger.info(
+        f"Execution ended: Total Time: {(datetime.datetime.now() - start_time)}\n"
+    )
 
 
 @app.get("/health")

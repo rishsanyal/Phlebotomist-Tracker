@@ -25,6 +25,12 @@ def query_location(clinician_id: int) -> Optional[LocationResponse]:
         if resp.status_code == 200:
             data = resp.json()
 
+            logger.info("Clinician Status API Response: {data}")
+
+            if "features" not in data:
+                logger.debug(f"Failed to query location for clinician #{clinician_id}")
+                raise requests.exceptions.HTTPError("Failed to query location")
+
             polygon_points = [
                 Location(lat=point[0], lon=point[1])
                 for point in data["features"][1]["geometry"]["coordinates"][0]
