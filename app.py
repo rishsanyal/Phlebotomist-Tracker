@@ -1,12 +1,6 @@
 import datetime
 import logging
-import os
-import signal
 import time
-from asyncio import create_task
-from contextlib import asynccontextmanager
-
-from fastapi import FastAPI
 
 from app_logger import logger
 from clinicians import INITIAL_DATA, ClinicianStatus
@@ -23,21 +17,11 @@ ERROR_POLL_INTERVAL = 10
 ERROR_RETRY_LIMT = 3
 TOTAL_RUN_HOURS = 1
 
+PROCESSING_STATUS = False
+
 # ENHANCEMENT: Use a database for this.
 # Redis would be a good fit given the atomicity and consistency requirements
 PHLEBOTOMIST_DATA = INITIAL_DATA
-
-
-@asynccontextmanager
-async def lifespan(_: FastAPI):
-    """
-    FastAPI Server's lifespan function to run on setup and shutdown
-    """
-    create_task(poll_locations())
-    yield
-
-
-app = FastAPI(title="Phlebotomist Monitor", version="1.0.0", lifespan=lifespan)
 
 
 def clinician_workflow(clinician: ClinicianInfo):
@@ -103,7 +87,7 @@ def clinician_workflow(clinician: ClinicianInfo):
             logger.error(f"Unknown ClinicianStatus: {clinician.query_status}")
 
 
-async def poll_locations():
+def poll_locations():
     """Task executor for the clinician workflow"""
 
     logging.info("Polling started")
@@ -111,7 +95,7 @@ async def poll_locations():
     curr_round = 0
 
     start_time = datetime.datetime.now()
-    end_time = start_time + datetime.timedelta(hours=TOTAL_RUN_HOURS)
+    end_time = start_time + datetime.timedelta(hours=1)
 
     logger.info(f"Response: Round Started: {start_time}\n")
 
@@ -145,13 +129,5 @@ async def poll_locations():
     )
 
 
-@app.get("/health")
-async def health_check():
-    """Health check endpoint for the server."""
-    return {"status": "ok", "timestamp": datetime.datetime.now().isoformat()}
-
-
 if __name__ == "__main__":
-    import uvicorn
-
-    uvicorn.run(app, host="localhost", port=8000)
+    poll_locations()

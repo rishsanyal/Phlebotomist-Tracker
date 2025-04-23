@@ -25,7 +25,7 @@ def query_location(clinician_id: int) -> Optional[LocationResponse]:
         if resp.status_code == 200:
             data = resp.json()
 
-            logger.info("Clinician Status API Response: {data}")
+            logger.info(f"Clinician Status API Response: {data}")
 
             if "features" not in data:
                 logger.debug(f"Failed to query location for clinician #{clinician_id}")
