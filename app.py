@@ -95,7 +95,7 @@ def poll_locations():
     curr_round = 0
 
     start_time = datetime.datetime.now()
-    end_time = start_time + datetime.timedelta(hours=1)
+    end_time = start_time + datetime.timedelta(hours=TOTAL_RUN_HOURS)
 
     logger.info(f"Response: Round Started: {start_time}\n")
 
