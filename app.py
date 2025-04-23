@@ -120,7 +120,11 @@ async def poll_locations():
             clinician_workflow(clinician)
 
         curr_round += 1
-        logger.info(f"Iteration Completed: {curr_round}")
+
+        logger.info(("-" * 100) + "\n")
+        logger.info(f"Iteration Completed: {curr_round}\n\n")
+        logger.info(("-" * 100) + "\n")
+
         time.sleep(POLL_INTERVAL)
 
 
