@@ -8,7 +8,7 @@ from clinicians import ClinicianStatus
 from models import Bounds, Location, LocationResponse
 
 PHLEBOTOMIST_API_BASE = "https://3qbqr98twd.execute-api.us-west-2.amazonaws.com/test"
-INVALID_PHLEBOTOMIST_API_BASE = "http://localhost:3000"
+ERROR_API_BASE = "http://localhost:3000"
 
 
 def query_location(clinician_id: int) -> Optional[LocationResponse]:

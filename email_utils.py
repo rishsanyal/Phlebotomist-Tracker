@@ -55,7 +55,7 @@ def send_alert(
 
     match alert_case:
         case ClinicianStatus.ERROR:
-            message = f"Unable to obtain the location for Phlebotomist #{clinician_id} as of {datetime.datetime.now(datetime.datetime.timezone.utc).isoformat()} UTC."
+            message = f"Unable to obtain the location for Phlebotomist #{clinician_id} as of {datetime.datetime.now(datetime.timezone.utc).isoformat()} UTC."
 
         case ClinicianStatus.OUT_OF_BOUNDS:
             message = f"Phlebotomist #{clinician_id} has exited the their bounds as of {datetime.datetime.now(datetime.timezone.utc).isoformat()} UTC."
