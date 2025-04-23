@@ -1,25 +1,25 @@
-from datetime import datetime
-from typing import Union
+from typing import Optional, Union
 
 import requests
 from shapely import Point, Polygon
 
+from app_logger import logger
 from clinicians import ClinicianStatus
 from models import Bounds, Location, LocationResponse
 
 PHLEBOTOMIST_API_BASE = "https://3qbqr98twd.execute-api.us-west-2.amazonaws.com/test"
-# PHLEBOTOMIST_API_BASE = "http://localhost:3000"
+INVALID_PHLEBOTOMIST_API_BASE = "http://localhost:3000"
 
 
-def query_location(phlebotomist_id: int) -> LocationResponse | None:
-    """Query the location of a phlebotomist."""
+def query_location(clinician_id: int) -> Optional[LocationResponse]:
+    """Query the location of a clinician."""
 
-    print(f"Querying location for phlebotomist #{phlebotomist_id}")
+    logger.info(f"Querying location for clinician #{clinician_id}")
+    resp = None
 
     try:
-        # TODO: ENHANCEMENT: Instead of 1 request: Make 3 requests together
         resp = requests.get(
-            f"{PHLEBOTOMIST_API_BASE}/clinicianstatus/{phlebotomist_id}", timeout=5
+            f"{PHLEBOTOMIST_API_BASE}/clinicianstatus/{clinician_id}", timeout=5
         )
 
         if resp.status_code == 200:
@@ -43,14 +43,16 @@ def query_location(phlebotomist_id: int) -> LocationResponse | None:
         requests.exceptions.HTTPError,
         requests.exceptions.ConnectionError,
         requests.exceptions.Timeout,
-    ) as e:
-        print(e)
-        return None
+    ):
+        logger.debug(f"Failed to query location for clinician #{clinician_id}")
+        if resp:
+            logger.debug(f"Status code: {resp.status}")
 
-    print(f"Failed to query location for phlebotomist #{phlebotomist_id}")
-    print(f"Status code: {resp.status}")
+        raise
+    except Exception as e:
+        logger.error("Uncaught exception: ", e)
+        raise
 
-    ## TODO: Raise an error here
     return None
 
 

@@ -13,20 +13,16 @@ Deployment:
 Trade-Offs:
 
 1. Redis vs Postgres
-2. Different threads
+2. Mulithreading/PubSub model for clinician_workflow
 
-Deepdive
+Deepdive Areas:
 
-1. notification service
-2. Redis as db, but any SQL works. Redis would be worse persistence. better for cacheing
+1. Separate out notification service to scale out.
+2. Redis as db, but any SQL works. Redis would be worse persistence. better for caching
    Could set an expiry dates. Traditional DB's store GEO info well. POSTGIS is very mature and SQL is more persistent. Could use Redis as a cache of sorts
-3. Look into Ray-Casting Algo vs Ray-tracing
 
 Enhancements:
 
 1. Paralleize each clinician info
 2. Could fan out API requests with a random delay
-
-TODO:
-
-1. Convert shapely_test to pytest
+3. Predicitve locating. Check how close each clinician is to the boundary and query accordingly.

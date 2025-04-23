@@ -3,4 +3,7 @@ shapely
 pydantic
 requests
 uvicorn
+pytest
 ipdb
+hypothesis
+logging

@@ -1,21 +1,25 @@
+import datetime
+import logging
 import os
 import signal
 import time
 from asyncio import create_task
 from contextlib import asynccontextmanager
-from datetime import datetime
 
 from fastapi import FastAPI
 
+from app_logger import logger
 from clinicians import INITIAL_DATA, ClinicianStatus
 from email_utils import send_alert
 from models import ClinicianInfo
 from utils import check_clinician_within_bounds, query_location
 
-# Setting polling to 4 minutes since it gives us enough time to account
+# Setting polling to 3 minutes since it gives us enough time to account
 # for network errors, emailing errors, etc and to reach our SLA of 5 mins
-POLL_INTERVAL = 5
-ERROR_POLL_INTERVAL = 1
+# Worst case -> 7 users * 3 retries * 10 seconds ~= 2 minutes
+# Accounting for ideal case -> 4 minutes
+POLL_INTERVAL = 4 * 60
+ERROR_POLL_INTERVAL = 10
 ERROR_RETRY_LIMT = 3
 
 # ENHANCEMENT: Use a database for this.
@@ -36,25 +40,30 @@ async def lifespan(_: FastAPI):
 app = FastAPI(title="Phlebotomist Monitor", version="1.0.0", lifespan=lifespan)
 
 
-# TODO: Rname this function
-def handle_clinician(clinician: ClinicianInfo):
-    """handle the status of a clinician
-    TODO: Fix documentation everywhere
+def clinician_workflow(clinician: ClinicianInfo):
+    """Query the location of a clinician and alert accordingly.
+
+    Steps
+    1. Read in clinician information
+    2. Based on clinician information status, poll their location
+    3. Based on poll results, update dictionary
+        1. If initialized/within bounds -> query location
+        2. If out of bounds -> send alert
+        3. If error -> check error count, if error count > ERROR_RETRY_LIMT -> send missing alert
     """
     clinician_geographic_info = None
-    clinician_geographic_info = query_location(clinician.user_id)
 
-    # TODO: Change to Try/Catch
-    if clinician_geographic_info:
+    try:
+        clinician_geographic_info = query_location(clinician.user_id)
         clinician.query_status = check_clinician_within_bounds(
             clinician_geographic_info.curr_point, clinician_geographic_info.bounds
         )
-    else:
+    except Exception as _:
         clinician.query_status = ClinicianStatus.ERROR
 
     match clinician.query_status:
         case ClinicianStatus.WITHIN_BOUNDS:
-            print(f"Clinician {clinician.user_id} within bounds")
+            logger.info(f"Clinician {clinician.user_id} within bounds")
             PHLEBOTOMIST_DATA[clinician.user_id]["query_status"] = (
                 ClinicianStatus.WITHIN_BOUNDS
             )
@@ -64,60 +73,61 @@ def handle_clinician(clinician: ClinicianInfo):
             PHLEBOTOMIST_DATA[clinician.user_id]["query_status"] = (
                 ClinicianStatus.OUT_OF_BOUNDS
             )
-            print(f"Clinician {clinician.user_id} out of bounds")
+            PHLEBOTOMIST_DATA[clinician.user_id]["error_count"] = 0
+
+            logger.debug(
+                f"Clinician {clinician.user_id} out of bounds. Curr Point: {clinician_geographic_info.curr_point} Bounds: {clinician_geographic_info.bounds}"
+            )
 
             send_alert(
-                phlebotomist_id=clinician.user_id,
+                clinician_id=clinician.user_id,
                 alert_case=ClinicianStatus.OUT_OF_BOUNDS,
             )
 
         case ClinicianStatus.ERROR:
-            # print(f"Clinician {clinician.user_id} error'd out")
-            # print(
-            #     f"Clinician retry: {PHLEBOTOMIST_DATA[clinician.user_id]['error_count']}"
-            # )
+            logger.info(f"Clinician {clinician.user_id} error'd out")
+            logger.info(
+                f"Clinician retry: {PHLEBOTOMIST_DATA[clinician.user_id]['error_count']}"
+            )
 
             if PHLEBOTOMIST_DATA[clinician.user_id]["error_count"] < ERROR_RETRY_LIMT:
                 PHLEBOTOMIST_DATA[clinician.user_id]["error_count"] += 1
                 time.sleep(ERROR_POLL_INTERVAL)
 
-                handle_clinician(clinician)
+                clinician_workflow(clinician)
             else:
                 PHLEBOTOMIST_DATA[clinician.user_id]["query_status"] = (
                     ClinicianStatus.ERROR
                 )
                 send_alert(
-                    phlebotomist_id=clinician.user_id, alert_case=ClinicianStatus.ERROR
+                    clinician_id=clinician.user_id, alert_case=ClinicianStatus.ERROR
                 )
         case _:
-            print(f"Unknown status: {clinician.query_status}")
+            logger.error(f"Unknown ClinicianStatus: {clinician.query_status}")
 
 
 async def poll_locations():
-    """
-    Steps
-    1. Read in clinician information -> Make a local dict
-    2. Based on clinician information status, poll their location
-    3. Based on poll results, update dictionary
-        1. If initialized/within bounds -> query location
-        2. If out of bounds -> send alert
-        3. If error -> check error count, if error count > 3 -> send missing alert
-    """
+    """Task executor for the clinician workflow"""
 
-    while True:
+    logging.info("Polling started")
+
+    start_time = datetime.datetime.now()
+    curr_round = 0
+
+    while datetime.datetime.now() < start_time + datetime.timedelta(hours=1):
         for _, clinician_info in PHLEBOTOMIST_DATA.items():
             clinician = ClinicianInfo(**clinician_info)
-            handle_clinician(clinician)
+            clinician_workflow(clinician)
 
+        curr_round += 1
+        logger.info(f"Iteration Completed: {curr_round}")
         time.sleep(POLL_INTERVAL)
-    return
 
 
-# TODO: Check OpenAPI deployment for this
-@app.get("/health", tags=["System"])
+@app.get("/health")
 async def health_check():
-    """ "Health check endpoint for the server."""
-    return {"status": "ok", "timestamp": datetime.now().isoformat()}
+    """Health check endpoint for the server."""
+    return {"status": "ok", "timestamp": datetime.datetime.now().isoformat()}
 
 
 if __name__ == "__main__":
